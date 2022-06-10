@@ -41,10 +41,13 @@ def train():
                      .batch(batch_size=32, drop_remainder=True)
     )
 
-    model = alexnet.create_model()
 
-    model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
-    model.summary()
+    strategy = tf.distribute.MultiWorkerMirroredStrategy()
+    
+    with strategy.scope():
+        model = alexnet.create_model()
+        model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+        model.summary()
 
     model.fit(
         train_ds,

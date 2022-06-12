@@ -1,11 +1,11 @@
-from cgi import test
-from concurrent.futures import process
 import model as alexnet
 import tensorflow as tf
 from tensorflow import keras
 
 CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+MAX_BUFFER_SIZE = 30000
 
+strategy = tf.distribute.MultiWorkerMirroredStrategy()
 def process_images(image, label):
     image = tf.image.per_image_standardization(image)
     image = tf.image.resize(image, (227, 227))
@@ -19,7 +19,7 @@ def load_dataset():
     test_ds = tf.data.Dataset.from_tensor_slices((test_images, test_labels))
     validation_ds = tf.data.Dataset.from_tensor_slices((validation_images, validation_labels))
     return train_ds, test_ds, validation_ds
-    
+
 def train():
     train_ds, test_ds, validation_ds = load_dataset()
     train_ds_size = tf.data.experimental.cardinality(train_ds).numpy()
@@ -27,23 +27,20 @@ def train():
     validation_ds_size = tf.data.experimental.cardinality(validation_ds).numpy()
     train_ds = (
         train_ds.map(process_images)
-                .shuffle(buffer_size=train_ds_size)
+                .shuffle(buffer_size=min(MAX_BUFFER_SIZE, train_ds_size))
                 .batch(batch_size=32, drop_remainder=True)
     )
     test_ds = (
         test_ds.map(process_images)
-               .shuffle(buffer_size=test_ds_size)
+               .shuffle(buffer_size=min(MAX_BUFFER_SIZE, test_ds_size))
                .batch(batch_size=32, drop_remainder=True)
     )
     validation_ds = (
         validation_ds.map(process_images)
-                     .shuffle(buffer_size=validation_ds_size)
+                     .shuffle(buffer_size=min(MAX_BUFFER_SIZE, validation_ds_size))
                      .batch(batch_size=32, drop_remainder=True)
     )
 
-
-    strategy = tf.distribute.MultiWorkerMirroredStrategy()
-    
     with strategy.scope():
         model = alexnet.create_model()
         model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])

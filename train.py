@@ -5,7 +5,13 @@ from tensorflow import keras
 CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 MAX_BUFFER_SIZE = 30000
 
-strategy = tf.distribute.MultiWorkerMirroredStrategy()
+communication_options = tf.distribute.experimental.CommunicationOptions(
+    implementation=tf.distribute.experimental.CommunicationImplementation.NCCL
+)
+strategy = tf.distribute.MultiWorkerMirroredStrategy(
+    communication_options=communication_options
+)
+
 def process_images(image, label):
     image = tf.image.per_image_standardization(image)
     image = tf.image.resize(image, (227, 227))

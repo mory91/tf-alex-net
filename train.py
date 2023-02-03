@@ -3,15 +3,9 @@ import tensorflow as tf
 from tensorflow import keras
 
 CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-MAX_BUFFER_SIZE = 30000
+MAX_BUFFER_SIZE = 5000
 
-communication_options = tf.distribute.experimental.CommunicationOptions(
-    implementation=tf.distribute.experimental.CommunicationImplementation.NCCL
-)
-strategy = tf.distribute.MultiWorkerMirroredStrategy(
-    communication_options=communication_options
-)
-
+strategy = tf.distribute.MultiWorkerMirroredStrategy()
 def process_images(image, label):
     image = tf.image.per_image_standardization(image)
     image = tf.image.resize(image, (227, 227))
@@ -56,7 +50,7 @@ def train():
         train_ds,
         epochs=50,
         validation_data=validation_ds,
-        validation_freq=1
+        validation_freq=2
     )
 
     model.evaluate(test_ds)
